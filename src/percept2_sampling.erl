@@ -13,32 +13,32 @@
 %%       derived from this software without specific prior written permission.
 %%
 %% THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ''AS IS''
-%% AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-%% IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-%% ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
-%% BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
-%% CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
-%% SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR 
-%% BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
-%% WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR 
-%% OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
+%% AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+%% IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+%% ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+%% BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+%% CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+%% SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+%% BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+%% WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+%% OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 %% ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 %%@author  Huiqing Li <H.Li@kent.ac.uk>
 %%
-%%@doc 
-%% This module provides a collection of functions for reporting information 
-%% regarding memory usage, garbage collection, scheduler utilization, and 
+%%@doc
+%% This module provides a collection of functions for reporting information
+%% regarding memory usage, garbage collection, scheduler utilization, and
 %% message/run queue length, etc. This is done by sampling-based profiling, i.e.
 %% the profiler probes the running Erlang system at regular intervals. Sampling
-%% profiling is typically less numerically accurate and specific, but has less 
-%% impact on the system. Data collected by the profiler are stored in files, 
-%% and the Gnuplot tool can be used for graph visualisation of the data. 
+%% profiling is typically less numerically accurate and specific, but has less
+%% impact on the system. Data collected by the profiler are stored in files,
+%% and the Gnuplot tool can be used for graph visualisation of the data.
 %%
 %% The following Erlang functions are used for the purpose of data collection
-%% <a href="http://www.erlang.org/doc/man/erlang.html#statistics-1">erlang:statistics/1</a>, 
+%% <a href="http://www.erlang.org/doc/man/erlang.html#statistics-1">erlang:statistics/1</a>,
 %% <a href="http://www.erlang.org/doc/man/erlang.html#memory-1">erlang:memory/1</a>,
-%% <a href="http://www.erlang.org/doc/man/erlang.html#system_info-1">erlang:system_info/1</a> 
+%% <a href="http://www.erlang.org/doc/man/erlang.html#system_info-1">erlang:system_info/1</a>
 %% and <a href="http://www.erlang.org/doc/man/erlang.html#process_info-2">erlang:process_info/1</a>.
 
 -module(percept2_sampling).
@@ -48,7 +48,7 @@
 -export([init/5]).
 
 %%@hidden
--type sample_item():: 
+-type sample_item()::
         'run_queue'|'run_queues'|'scheduler_utilisation'|
         'process_count'| 'schedulers_online'|'mem_info'|
         {'message_queue_len', pid()|regname()}|'all'.
@@ -60,7 +60,7 @@
 -type seconds()::non_neg_integer().
 
 -record(run_queue_info,
-        {timestamp::float(), 
+        {timestamp::float(),
          run_queue=0::non_neg_integer()
         }).
 
@@ -73,7 +73,7 @@
         {timestamp::float(),
          scheduler_utilisation::[{integer(), number(), number()}]
         }).
-   
+
 -record(process_count_info, {
           timestamp::float(),
           process_count::non_neg_integer()}).
@@ -91,7 +91,7 @@
           code        ::float(),
           binary      ::float()
          }).
- 
+
 -record(message_queue_len_info, {
           timestamp ::float(),
           message_queue_len ::non_neg_integer()}).
@@ -100,12 +100,12 @@
 
 -define(INTERVAL, 10). % in milliseconds
 
--define(seconds(EndTs,StartTs), 
+-define(seconds(EndTs,StartTs),
         timer:now_diff(EndTs, StartTs)/1000000).
 
 %%-define(debug, 9).
-%%-define(debug, 0). 
--ifdef(debug). 
+%%-define(debug, 0).
+-ifdef(debug).
 dbg(Level, F, A) when Level >= ?debug ->
     io:format(F, A),
     ok;
@@ -147,16 +147,16 @@ check_sample_items_1([], Acc) ->
 
 
 check_out_dir(Dir) ->
-    case filelib:is_dir(Dir) of 
+    case filelib:is_dir(Dir) of
         false -> error(lists:flatten(
                          io_lib:format(
                            "Invalid directory:~p", [Dir])));
         true -> ok
     end.
-    
+
 %%@doc Start the profiler and collects information about the system.
 %%
-%% The type of information collected is specified by `Items': 
+%% The type of information collected is specified by `Items':
 %%<ul>
 %% `run_queue': returns the sum length of all run queues, that is, the total number of processes that are ready to run.
 %%</ul>
@@ -173,7 +173,7 @@ check_out_dir(Dir) ->
 %% `process_count': returns the number of processes currently existing at the local node as an integer.
 %%</ul>
 %%<ul>
-%% `mem_info': returns information about memory dynamically allocated by the Erlang emulator. Information 
+%% `mem_info': returns information about memory dynamically allocated by the Erlang emulator. Information
 %% about the following memory types is collected:
 %% processes, ets, atom, code and binary. See <a href="http://www.erlang.org/doc/man/erlang.html#memory-1">erlang:memory/1</a>.
 %%</ul>
@@ -183,31 +183,31 @@ check_out_dir(Dir) ->
 %%<ul>
 %% `all':  this option covers all the above options apart from `message_queue_len'.
 %%</ul>
-%%If an entry function is specified, this function profiles the system 
-%% for the whole duration until the entry function returns; otherwise it profiles 
-%% the system for the time period specified. The system is probed at the default 
-%% time interval, which is 10 milliseconds. It is also possible to stop the sampling 
+%%If an entry function is specified, this function profiles the system
+%% for the whole duration until the entry function returns; otherwise it profiles
+%% the system for the time period specified. The system is probed at the default
+%% time interval, which is 10 milliseconds. It is also possible to stop the sampling
 %% manually using <a href="percept2_sampling.html#stop-0">stop/0</a>,
 %%
-%% `OutDir' tells the tool where to put the data files generated. A data file is generated 
-%% for each type of information in `Items'. For an item `A', the name of the data file would be 
-%% `sample_A.dat'. 
+%% `OutDir' tells the tool where to put the data files generated. A data file is generated
+%% for each type of information in `Items'. For an item `A', the name of the data file would be
+%% `sample_A.dat'.
 %%
-%%  Sampling data is formatted in a way so that the graph plotting tool `Gnuplot' 
-%%  can be used for visualisation.  A pre-defined plotting script is available for 
-%%  each type of information collected, and these scripts are in the `percept2/gplt' directory. 
-%%  If you are familiar with Gnuplot, you could generate the diagrams in Gnuplot command-line. 
-%%  Alternately, you could visualise the sampling data through Percept2, which uses Gnuplot to 
-%%  generate the graphs behind the scene. (It is likely that we will get rid of the dependence to 
+%%  Sampling data is formatted in a way so that the graph plotting tool `Gnuplot'
+%%  can be used for visualisation.  A pre-defined plotting script is available for
+%%  each type of information collected, and these scripts are in the `percept2/gplt' directory.
+%%  If you are familiar with Gnuplot, you could generate the diagrams in Gnuplot command-line.
+%%  Alternately, you could visualise the sampling data through Percept2, which uses Gnuplot to
+%%  generate the graphs behind the scene. (It is likely that we will get rid of the dependence to
 %%  Gnuplot in the future).
-%% 
-%%  To visualise the sampling data, one could select the `Visualise sampling data' from the Percept2 main menu, 
-%%  and this should lead to a page as shown in the screenshot next. 
+%%
+%%  To visualise the sampling data, one could select the `Visualise sampling data' from the Percept2 main menu,
+%%  and this should lead to a page as shown in the screenshot next.
 %%
 %% <img src="percept2_sample.png"  alt="Visualise sampling data"  width="850" height="500"> </img>
 %%
-%% In this page, select the type of data you would like to see, enter the data file name, and the 
-%% path leading to this file, then click on the `Generate Graph' button. This should leads to a page showing 
+%% In this page, select the type of data you would like to see, enter the data file name, and the
+%% path leading to this file, then click on the `Generate Graph' button. This should leads to a page showing
 %% the graph. The screenshot next shows an example output.
 %%
 %%  <img src="percept2_sample_mem.png"
@@ -215,7 +215,7 @@ check_out_dir(Dir) ->
 %%
 -spec(start(Items :: [sample_item()],
             EntryOrTime :: entry_mfa()  | milliseconds(),
-            OutDir :: file:filename()) -> 
+            OutDir :: file:filename()) ->
                ok).  %%[sample_items()],
 start(Items, Time, OutDir) when is_integer(Time) ->
     start(Items, Time, ?INTERVAL,
@@ -228,22 +228,22 @@ start(Items, Entry={_Mod, _Fun, _Args}, OutDir) ->
 %% Different from <a href="percept2_sampling.html#start-3">start/3</a>,
 %% this function allows the user to specify the time interval.
 -spec(start(Items :: [any()], EntryOrTime :: entry_mfa()  | seconds(),
-            TimeInterval :: milliseconds(), OutDir :: file:filename()) -> 
-               ok).  %%[sample_items()],         
+            TimeInterval :: milliseconds(), OutDir :: file:filename()) ->
+               ok).  %%[sample_items()],
 start(Items, Time, TimeInterval, OutDir) when is_integer(Time) ->
     start(Items, Time, TimeInterval, fun(_) -> true end, OutDir);
 start(Items, Entry={_Mod, _Fun, _Args}, TimeInterval, OutDir) ->
     start(Items, Entry, TimeInterval, fun(_) -> true end, OutDir).
-   
+
 %%@doc Start the profiler and collects information about the system.
 %%
-%% Apart from allowing the user to specify the time interval, this 
-%% function also allows the user to supply a filter function, so that 
+%% Apart from allowing the user to specify the time interval, this
+%% function also allows the user to supply a filter function, so that
 %% only those data that satisfy certain condition are logged.
 %% See <a href="percept2_sampling.html#start-3">start/3</a>.
 -spec(start(Items :: [any()], EntryOrTime :: entry_mfa()  | seconds(),
             TimeInterval :: milliseconds(), fun((_) ->  boolean()),
-            OutDir :: file:filename()) -> 
+            OutDir :: file:filename()) ->
                ok).  %%[sample_items()],
 start(Items, _Entry={Mod, Fun, Args}, TimeInterval, FilterFun, OutDir) ->
     ok=check_out_dir(OutDir),
@@ -255,7 +255,7 @@ start(Items, Time, TimeInterval, FilterFun, OutDir)
   when is_integer(Time)->
     ok=check_out_dir(OutDir),
     Items1=check_sample_items(Items),
-    try 
+    try
         Pid=start_sampling(Items1, TimeInterval, FilterFun, OutDir),
         erlang:start_timer(Time*1000, Pid, stop),
         Pid
@@ -271,24 +271,24 @@ start(Items, Time, TimeInterval, FilterFun, OutDir)
 %%%----------------------------%%%
 
 start_sampling(Items, TimeInterval, FilterFun, OutDir) ->
-    case lists:member('scheduler_utilisation', Items) of 
+    case lists:member('scheduler_utilisation', Items) of
         true ->
             erlang:system_flag(scheduler_wall_time, true);
         _ -> ok
     end,
-    spawn_link(?MODULE, init, [now(), Items, TimeInterval, FilterFun, OutDir]).
+    spawn_link(?MODULE, init, [erlang:timestamp(), Items, TimeInterval, FilterFun, OutDir]).
 
 %%@doc Stop the sampling.
 -spec (stop() ->{error, not_started}|ok).
-stop() ->   
-    case whereis(percept2_sampling) of 
+stop() ->
+    case whereis(percept2_sampling) of
         undefined ->
             {error, not_started};
         Pid ->
             Pid ! stop,
             ok
     end.
-                
+
 stop(Pid) ->
     Pid!stop,
     ok.
@@ -298,15 +298,15 @@ init(StartTs, Items, Interval, FilterFun, OutDir) ->
     register(percept2_sampling, self()),
     create_ets_tables(Items),
     sampling_loop(StartTs, Interval, Items, FilterFun, OutDir).
-  
-  
+
+
 sampling_loop(StartTs, Interval, Items, FilterFun, OutDir) ->
     receive
-        stop -> 
+        stop ->
             write_data(Items, OutDir);
-        {timeout, _TimerRef, stop} -> 
+        {timeout, _TimerRef, stop} ->
             write_data(Items, OutDir),
-            io:format("Done.\n")    
+            io:format("Done.\n")
     after Interval->
             do_sampling(Items,StartTs),
             sampling_loop(StartTs, Interval, Items, FilterFun, OutDir)
@@ -320,7 +320,7 @@ do_sampling([Item|Items],StartTs) ->
     do_sampling(Items,StartTs);
 do_sampling([],_) -> ok.
 
-   
+
 mk_ets_tab_name(Item)->
     list_to_atom(atom_to_list(Item)++"_tab").
 mk_file_name(Item) ->
@@ -341,7 +341,7 @@ do_sample(mem_info, StartTs) ->
     [{total, Total}, {processes, Processes}, {ets, ETS},
      {atom, Atom}, {code, Code}, {binary, Binary}] =
         erlang:memory([total, processes, ets, atom, code, binary]),
-    Info=#mem_info{timestamp=?seconds(now(), StartTs),
+    Info=#mem_info{timestamp=?seconds(erlang:timestamp(), StartTs),
                    total=to_megabytes(Total),
                    processes=to_megabytes(Processes),
                    ets=to_megabytes(ETS),
@@ -352,44 +352,44 @@ do_sample(mem_info, StartTs) ->
     ets:insert(mk_ets_tab_name(mem_info), Info);
 do_sample(run_queue, StartTs) ->
     RunQueue= erlang:statistics(run_queue),
-    Info=#run_queue_info{timestamp=?seconds(now(), StartTs),
+    Info=#run_queue_info{timestamp=?seconds(erlang:timestamp(), StartTs),
                          run_queue = RunQueue},
     ?dbg(0, "RunQueue:\n~p\n", [Info]),
     ets:insert(mk_ets_tab_name(run_queue), Info);
 do_sample(run_queues,StartTs) ->
     RunQueues= erlang:statistics(run_queues),
-    Info=#run_queues_info{timestamp=?seconds(now(), StartTs),
+    Info=#run_queues_info{timestamp=?seconds(erlang:timestamp(), StartTs),
                          run_queues = RunQueues},
     ?dbg(0, "RunQueues:\n~p\n", [Info]),
     ets:insert(mk_ets_tab_name(run_queues), Info);
 do_sample(scheduler_utilisation,StartTs) ->
     SchedulerWallTime=erlang:statistics(scheduler_wall_time),
     Info=#scheduler_utilisation_info{
-      timestamp=?seconds(now(), StartTs),
+      timestamp=?seconds(erlang:timestamp(), StartTs),
       scheduler_utilisation = lists:usort(SchedulerWallTime)},
     ?dbg(0, "Scheduler walltime:\n~p\n", [Info]),
     ets:insert(mk_ets_tab_name(scheduler_utilisation), Info);
 do_sample(schedulers_online,StartTs)->
     SchedulersOnline = erlang:system_info(schedulers_online),
-    Info=#schedulers_online_info{timestamp=?seconds(now(), StartTs),
+    Info=#schedulers_online_info{timestamp=?seconds(erlang:timestamp(), StartTs),
                                          schedulers_online = SchedulersOnline},
     ?dbg(0, "Schedulers online:\n~p\n", [Info]),
     ets:insert(mk_ets_tab_name(schedulers_online), Info);
 do_sample(process_count, StartTs) ->
     ProcessCount = erlang:system_info(process_count),
-    Info=#process_count_info{timestamp=?seconds(now(), StartTs),
+    Info=#process_count_info{timestamp=?seconds(erlang:timestamp(), StartTs),
                              process_count = ProcessCount},
     ?dbg(0, "Process count:\n~p\n", [Info]),
     ets:insert(mk_ets_tab_name(process_count), Info);
 do_sample({message_queue_len, RegName}, StartTs) when is_atom(RegName) ->
-    case whereis(RegName) of 
+    case whereis(RegName) of
         undefined ->ok;
-        Pid -> 
-            do_sample({message_queue_len,Pid},StartTs) 
+        Pid ->
+            do_sample({message_queue_len,Pid},StartTs)
     end;
 do_sample({message_queue_len,Pid},StartTs) ->
     [{message_queue_len, MsgQueueLen}] = erlang:process_info(Pid, [message_queue_len]),
-    Info = #message_queue_len_info{timestamp=?seconds(now(), StartTs),
+    Info = #message_queue_len_info{timestamp=?seconds(erlang:timestamp(), StartTs),
                                    message_queue_len = MsgQueueLen
                                   },
     ?dbg(0, "Message queue length:\n~p\n", [Info]),
@@ -432,7 +432,7 @@ read_data_from_tab(scheduler_utilisation) ->
     Tab = mk_ets_tab_name(scheduler_utilisation),
     {_, Acc1}=ets:foldr(
                 fun(_Data={_, Secs, SchedulerWallTime1}, {SchedulerWallTime0, Acc}) ->
-                        case SchedulerWallTime0 of 
+                        case SchedulerWallTime0 of
                             none ->
                                 {SchedulerWallTime1, Acc};
                             _ ->
@@ -481,6 +481,6 @@ to_megabytes(Bytes) ->
     Bytes/1000000.
 
 %% Example commands
-%% percept2_sampling:sample( ['all'[["c:/cygwin/home/hl/test"], 5, 40, 2, 4, 0.8, 
+%% percept2_sampling:sample( ['all'[["c:/cygwin/home/hl/test"], 5, 40, 2, 4, 0.8,
 %%                                                                      ["c:/cygwin/home/hl/test"],8]},"../profile_data").
 %%percept2_sampling:sample([all, {'message_queue_len', 'percept2_db'}], {percept2, analyze, [["sim_code.dat"]]}, ".").

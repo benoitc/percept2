@@ -15,24 +15,24 @@
 %% under the License.
 %%
 %% %CopyrightEnd%
-%% 
-%% 
+%%
+%%
 %% @doc Percept2 - An Enhanced version of the Erlang Concurrency Profiling Tool Percept.
 %%
-%%Percept2 extends Percept in two aspects: functionality and scalability. Among the new functionalities added to Percept are: 
+%%Percept2 extends Percept in two aspects: functionality and scalability. Among the new functionalities added to Percept are:
 %% <ul>
 %% <li> Scheduler activity: the number of active schedulers at any time. </li>
 %% <li> Process migration information: the migration history of a process between run queues. </li>
 %% <li> Statistics data about message passing between processes: the number of messages, and the average message size, sent/received by a process.</li>
 %% <li> Accumulated runtime per-process: the accumulated time when a process is in a running state.</li>
-%% <li> Process tree: the hierarchy structure indicating the parent-child relationships between processes.</li> 
-%% <li> Dynamic function call graph/count/time: the hierarchy structure showing the calling 
+%% <li> Process tree: the hierarchy structure indicating the parent-child relationships between processes.</li>
+%% <li> Dynamic function call graph/count/time: the hierarchy structure showing the calling
 %% relationships between functions during the program run, and the amount of time spent on a function.</li>
 %% <li> Active functions: the functions that are active during a specific time interval.</li>
 %% <li> Inter-node message passing: the sending of messages from one node to another.
 %% </li>
-%% </ul> 
-%% The following techniques have been used to improved the scalability of Percept. 
+%% </ul>
+%% The following techniques have been used to improved the scalability of Percept.
 %% <ul>
 %% <li> Compressed process tree/function call graph representation: an approach to reducing the
 %%      number of processes/function call paths presented without losing important information.</li>
@@ -41,21 +41,21 @@
 %% </ul>
 %%
 %% This module provides the user interface for the application.
-%% 
+%%
 -module(percept2).
 
 -behaviour(application).
 
 -export([
-         profile/2, 
+         profile/2,
          profile/3,
-         stop_profile/0, 
-         
-         start_webserver/0, 
-         start_webserver/1, 
-         stop_webserver/0, 
-         stop_webserver/1, 
-         
+         stop_profile/0,
+
+         start_webserver/0,
+         start_webserver/1,
+         stop_webserver/0,
+         stop_webserver/1,
+
          analyze/1,
          analyze/4,
          stop_db/0]).
@@ -71,7 +71,7 @@
 -type module_name()::atom().
 
 -type function_name()::atom().
- 
+
 -type filespec()::file:filename()|
                   {file:filename(), wrap, Suffix::string(),
                    WrapSize::pos_integer()} |
@@ -84,14 +84,14 @@
                               'procs' |                %% profile basic process activities and process runnability.
                               'ports' |                %% profile basic port activities and port runnability.
                               'schedulers'|            %% profile scheduler concurrency.
-                              'running'|               %% enable 'procs_basic' and 'running', but also 
+                              'running'|               %% enable 'procs_basic' and 'running', but also
                                                        %% distinguish process running state from runnable state.
                               'message'|               %% enable 'procs_basic', but also profile message send and receive.
                               'migration'|             %% enable 'running' and 'scheduler_id'.
                               'garbage_collection'|    %% enable 'procs_basic' and 'garbage_collection'.
                               's_group'|               %% profile s_group activities.
                               'all'      |             %% profile all the activities above.
-                              {'callgraph', [module_name()]}. %% enable 'procs_basic', but also trace the call/return of 
+                              {'callgraph', [module_name()]}. %% enable 'procs_basic', but also trace the call/return of
                                                               %% functions defined the modules specified. This feature
                                                               %% should not be used when 's_group' is enabled.
 
@@ -101,14 +101,14 @@
 %% 		Application callback functions             %%
 %%                                                         %%
 %%---------------------------------------------------------%%
-%% @spec start(Type, Args) -> {started, Hostname, Port} | {error, Reason} 
+%% @spec start(Type, Args) -> {started, Hostname, Port} | {error, Reason}
 %% @doc none
 %% @hidden
 start(_Type, _Args) ->
     %% start web browser service
     start_webserver(0).
 
-%% @spec stop(State) -> ok 
+%% @spec stop(State) -> ok
 %% @doc none
 %% @hidden
 -spec stop(any()) -> ok.
@@ -128,16 +128,16 @@ stop_db() ->
 %%                                                         %%
 %%---------------------------------------------------------%%
 
-%%@doc Starts the profiling while an application of interest 
-%%     is already running. 
+%%@doc Starts the profiling while an application of interest
+%%     is already running.
 %%     The profiling can be stopped by `percept2:stop_profile/0'.
 %%     The valid `TraceProfileOptions' values are: `procs', `ports',
-%%     `schedulers', `running', `message', `migration' and `all'. See 
-%%     <a href="percept2.html#profile-3">profile/3</a> for the 
+%%     `schedulers', `running', `message', `migration' and `all'. See
+%%     <a href="percept2.html#profile-3">profile/3</a> for the
 %%     descriptions of the options.
 %%@see stop_profile/0.
--spec profile(FileSpec::filespec(), 
-              TraceProfileOptions::[trace_profile_option()])-> 
+-spec profile(FileSpec::filespec(),
+              TraceProfileOptions::[trace_profile_option()])->
                      {ok, integer()} | {already_started, port()}.
 profile(FileSpec, TraceProfileOptions) ->
     case process_trace_profile_opts(TraceProfileOptions) of
@@ -146,54 +146,54 @@ profile(FileSpec, TraceProfileOptions) ->
         Opts ->
             percept2_profile:start(FileSpec, Opts)
     end.
- 
-%%@doc The profiling starts with executing the entry function given, and goes on for 
-%%     the whole duration until the entry function returns and the profiling 
-%%     has concluded. The events to be traced/profiled depends on the options 
+
+%%@doc The profiling starts with executing the entry function given, and goes on for
+%%     the whole duration until the entry function returns and the profiling
+%%     has concluded. The events to be traced/profiled depends on the options
 %%     specified by `TraceProfileOptions'. The following options are available:
 %%
 %%    -- `procs_basic'       : only profile basic process activities including
-%%                             spawn, exit, register. Other activiites including 
-%%                             unregister, link, unlink, getting_linked, and 
+%%                             spawn, exit, register. Other activiites including
+%%                             unregister, link, unlink, getting_linked, and
 %%                             getting_unlinked, are traced but not profiled.
 %%
-%%    -- `procs'             : enable `'procs_baisc', but also profile the 
-%%                             runnablity of processes. 
+%%    -- `procs'             : enable `'procs_baisc', but also profile the
+%%                             runnablity of processes.
 %%
 %%    -- `ports_basic'       : only profile basic port activities: open and close.
 %%
-%%    -- `ports'             : enable `ports_basic', but also profile the 
+%%    -- `ports'             : enable `ports_basic', but also profile the
 %%                             runnablity of ports.
 %%
 %%    -- `schedulers'        : enable the profiling of scheduler concurrency.
 %%
-%%    -- `running'           : enable the feature to distinguish running from 
-%%                             runnable process states. If the `procs' option is 
+%%    -- `running'           : enable the feature to distinguish running from
+%%                             runnable process states. If the `procs' option is
 %%                             not given, this option enables the process concurrency
 %%                             automatically.
 %%
-%%    -- `message'           : enable the profiling of message passing between 
+%%    -- `message'           : enable the profiling of message passing between
 %%                             processes; This option enables `procs_basic' automically.
-%%         
-%%    -- `migration'         : enable the profiling of process migration between 
+%%
+%%    -- `migration'         : enable the profiling of process migration between
 %%                             schedulers; this option enables `procs' automatically.
 %%
-%%    -- `garbage_collection': enable the profiling of garbage collection. This 
+%%    -- `garbage_collection': enable the profiling of garbage collection. This
 %%
 %%    -- `s_group'           : enable the profiling of s_group-related activities, including
 %%                             the creation/deletion of s_groups as well adding/removing nodes
-%%                             to/from a s_group. 
+%%                             to/from a s_group.
 %%
 %%    -- `all'               : enable all the previous options apart from `s_group'.
 %%
-%%    -- `{callgraph, Mods}' : enable the profiling of function activities 
+%%    -- `{callgraph, Mods}' : enable the profiling of function activities
 %%                              (`call' and `return_to') of functions defined in `Mods'.
-%%                              This option enables `procs_basic' automatically. Given the huge 
-%%                              amount of data that could possibly be produced when this 
-%%                              feature is on, we do not recommend profiling many modules 
-%%                              in one go at this stage. We are in the process of improving 
-%%                              the performance of this feature. This feature should not be 
-%%                              used when `s_group' is enabled, since the latter needs to 
+%%                              This option enables `procs_basic' automatically. Given the huge
+%%                              amount of data that could possibly be produced when this
+%%                              feature is on, we do not recommend profiling many modules
+%%                              in one go at this stage. We are in the process of improving
+%%                              the performance of this feature. This feature should not be
+%%                              used when `s_group' is enabled, since the latter needs to
 %%                              record the actual arguments of function calls.
 %%
 %% See the <a href="overview-summary.html">Overview</a> page for examples.
@@ -218,7 +218,7 @@ process_trace_profile_opts(Opts) ->
 process_trace_profile_opts([], Res) ->
     lists:usort(Res);
 process_trace_profile_opts([Opt|Opts], Acc) ->
-    case Opt of 
+    case Opt of
         ports_basic ->
             process_trace_profile_opts(
               Opts,[ports|Acc]);
@@ -236,7 +236,7 @@ process_trace_profile_opts([Opt|Opts], Acc) ->
               Opts,[procs, scheduler|Acc]);
         running ->
             process_trace_profile_opts(
-              Opts,[runnable_procs,procs,exclusive, 
+              Opts,[runnable_procs,procs,exclusive,
                     running,exiting|Acc]);
         message ->
             process_trace_profile_opts(
@@ -264,7 +264,7 @@ process_trace_profile_opts([Opt|Opts], Acc) ->
         Other ->
             Msg = lists:flatten(
                     io_lib:format(
-                      "Invalid profile option:~p.", 
+                      "Invalid profile option:~p.",
                       [Other])),
             {error, Msg}
     end.
@@ -289,47 +289,47 @@ analyze(FileNames) ->
     end.
 
 %%@doc Parallel analysis of trace files. See the <a href="overview-summary.html">Overview</a> page for examples.
--spec analyze(Filename::file:filename(), Suffix::string(), 
+-spec analyze(Filename::file:filename(), Suffix::string(),
               StartIndex::pos_integer(), EndIndex::pos_integer()) ->
                      'ok' | {'error', any()}.
-analyze(FileName, Suffix, StartIndex, EndIndex) 
+analyze(FileName, Suffix, StartIndex, EndIndex)
   when is_integer(StartIndex) andalso is_integer(EndIndex) ->
     Index=lists:seq(StartIndex, EndIndex),
     FileNames=[FileName++integer_to_list(I)++Suffix||I<-Index],
     analyze(FileNames);
 analyze(_FileName, _Suffux, _, _) ->
     {error, "Start/end indexes must be integers."}.
-    
+
 analyze_par_1(FileNameSubDBPairs) ->
     Self = self(),
     process_flag(trap_exit, true),
-    case whereis(percept2_httpd) of 
+    case whereis(percept2_httpd) of
         undefined ->
             ok;
         _ ->
-            TmpDir=get_svg_alias_dir(), 
+            TmpDir=get_svg_alias_dir(),
             rm_tmp_files(TmpDir)
     end,
     Pids = lists:foldl(fun({File, SubDBPid}, Acc) ->
                                Pid=spawn_link(?MODULE, parse_and_insert, [File, SubDBPid, Self]),
-                               receive 
+                               receive
                                    {started, {File, SubDBPid}} ->
                                        [Pid|Acc]
                                end
                        end, [], FileNameSubDBPairs),
     loop_analyzer_par(Pids).
-    
+
 loop_analyzer_par(Pids) ->
-    receive 
+    receive
         {Pid, done} ->
-            case Pids -- [Pid] of 
+            case Pids -- [Pid] of
                 [] ->
                     try percept2_db:consolidate_db()
                     catch _E1:_E2 -> ok  %%sometimes it is not possible.
                     end,
                     io:format("    ~p created processes.~n",
                               [percept2_db:select({information, procs_count})]),
-                    io:format("    ~p opened ports.~n", 
+                    io:format("    ~p opened ports.~n",
                               [percept2_db:select({information, ports_count})]);
                 PidsLeft ->
                     loop_analyzer_par(PidsLeft)
@@ -339,9 +339,9 @@ loop_analyzer_par(Pids) ->
             flush(),
             {error, Reason};
         _Other ->
-            loop_analyzer_par(Pids)            
+            loop_analyzer_par(Pids)
     end.
-            
+
 flush() ->
     receive
         _ -> flush()
@@ -351,7 +351,7 @@ flush() ->
 %% @spec start_webserver() -> {started, Hostname, Port} | {error, Reason}
 %%	Hostname = string()
 %%	Port = integer()
-%%	Reason = term() 
+%%	Reason = term()
 %% @doc Starts webserver. An available port number will be assigned by inets.
 -spec start_webserver() ->{'started', string(), pos_integer()} | {'error', any()}.
 start_webserver() ->
@@ -360,8 +360,8 @@ start_webserver() ->
 %% @spec start_webserver(integer()) -> {started, Hostname, AssignedPort} | {error, Reason}
 %%	Hostname = string()
 %%	AssignedPort = integer()
-%%	Reason = term() 
-%% @doc Starts webserver with a given port number. If port number is 0, an available port number will 
+%%	Reason = term()
+%% @doc Starts webserver with a given port number. If port number is 0, an available port number will
 %%	be assigned by inets.
 -spec start_webserver(Port :: non_neg_integer()) ->
                              {'started', string(), pos_integer()} | {'error', any()}.
@@ -380,7 +380,7 @@ start_webserver(Port) when is_integer(Port) ->
 		    Mem = spawn(fun() -> service_memory({Pid,AssignedPort,Host, TmpDir}) end),
 		    register(percept2_httpd, Mem),
                     rm_tmp_files(TmpDir),
-                    case ets:info(history_html) of 
+                    case ets:info(history_html) of
                         undefined ->
                             ets:new(history_html, [named_table, public, {keypos, #history_html.id},
                                                    ordered_set]);
@@ -403,7 +403,7 @@ start_webserver(Port) when is_integer(Port) ->
 -spec stop_webserver() -> ok | {error, not_started}.
 stop_webserver() ->
     case whereis(percept2_httpd) of
-    	undefined -> 
+    	undefined ->
 	    {error, not_started};
 	Pid ->
             try do_stop([], Pid)
@@ -431,7 +431,7 @@ do_stop(Port, Pid)->
             TmpDir = get_svg_alias_dir(),
             rm_tmp_files(TmpDir),
             Pid ! quit,
-            case ets:info(egd_font_table) of 
+            case ets:info(egd_font_table) of
                 undefined -> ok;
                 _  ->ets:delete(egd_font_table)
             end,
@@ -445,7 +445,7 @@ stop_webserver(Port) ->
     do_stop(Port,[]).
 %%==========================================================================
 %%
-%% 		Auxiliary functions 
+%% 		Auxiliary functions
 %%
 %%==========================================================================
 
@@ -453,7 +453,7 @@ stop_webserver(Port) ->
 %%@hidden
 parse_and_insert(Filename,SubDB, Parent) ->
     io:format("Parsing: ~p ~n", [Filename]),
-    T0 = erlang:now(),
+    T0 = erlang:timestamp(),
     Parser = mk_trace_parser(self(), SubDB),
     ?dbg(0,"Parser Pid:\n~p\n", [Parser]),
     Pid=dbg:trace_client(file, Filename, Parser),
@@ -462,7 +462,7 @@ parse_and_insert(Filename,SubDB, Parent) ->
     ?dbg(0, "Trace client Ref:\n~p\n",[{Pid, Ref}]),
     Parent!{started, {Filename, SubDB}},
     parse_and_insert_loop(Filename, Pid, Ref, SubDB,T0, Parent).
-   
+
 parse_and_insert_loop(Filename, Pid, Ref, SubDB,T0, Parent) ->
     receive
 	{'DOWN',Ref,process, Pid, noproc} ->
@@ -471,27 +471,27 @@ parse_and_insert_loop(Filename, Pid, Ref, SubDB,T0, Parent) ->
             Parent ! {error, Msg};
     	{parse_complete, {Pid, Count}} ->
             Pid ! {ack, self()},
-            T1 = erlang:now(),
+            T1 = erlang:timestamp(),
 	    io:format("Parsed ~p entries from ~p in ~p s.~n", [Count, Filename, ?seconds(T1, T0)]),
             Parent ! {self(), done};
-	{'DOWN',Ref, process, Pid, normal} -> 
+	{'DOWN',Ref, process, Pid, normal} ->
             parse_and_insert_loop(Filename, Pid, Ref, SubDB,T0,Parent);
-	{'DOWN',Ref, process, Pid, Reason} -> 
+	{'DOWN',Ref, process, Pid, Reason} ->
             Parent ! {error, Reason};
-        Msg -> 
-            io:format("parse_and_insert_loop, unhandled: ~p\n", [Msg]), 
+        Msg ->
+            io:format("parse_and_insert_loop, unhandled: ~p\n", [Msg]),
             parse_and_insert_loop(Filename, Pid, Ref, SubDB,T0,Parent)
     end.
 
 mk_trace_parser(Parent, SubDB) ->
     {fun trace_parser/2, {0, Parent, SubDB}}.
 
-trace_parser(end_of_trace, {Count, Pid, SubDB}) -> 
+trace_parser(end_of_trace, {Count, Pid, SubDB}) ->
     percept2_db:insert(SubDB, {trace_ts, self(), end_of_trace}),
-    %% synchronisation is to make sure all traces have been 
+    %% synchronisation is to make sure all traces have been
     %% processed before consolidating the DB.
-    receive 
-        {SubDB, done} -> 
+    receive
+        {SubDB, done} ->
             Pid ! {parse_complete, {self(),Count}},
             receive
                 {ack, Pid} ->
@@ -523,19 +523,19 @@ find_service_port_from_pid([{_, Pid, Options} | _], Pid) ->
     end;
 find_service_port_from_pid([{_, _, _} | Services], Pid) ->
     find_service_port_from_pid(Services, Pid).
-    
+
 %% service memory
 service_memory({Pid, Port, Host, TmpDir}) ->
     receive
-	quit -> 
+	quit ->
 	    ok;
 	{Reply, get_port} ->
 	    Reply ! Port,
 	    service_memory({Pid, Port, Host, TmpDir});
-	{Reply, get_host} -> 
+	{Reply, get_host} ->
 	    Reply ! Host,
 	    service_memory({Pid, Port, Host, TmpDir});
-	{Reply, get_pid} -> 
+	{Reply, get_pid} ->
 	    Reply ! Pid,
 	    service_memory({Pid, Port, Host, TmpDir});
         {Reply, get_dir} ->
@@ -543,9 +543,9 @@ service_memory({Pid, Port, Host, TmpDir}) ->
             service_memory({Pid, Port, Host, TmpDir})
     end.
 
-% Create config data for the webserver 
+% Create config data for the webserver
 -spec get_webserver_config(list(), pos_integer()) -> {ok, list()}.
-get_webserver_config(Servername, Port) 
+get_webserver_config(Servername, Port)
   when is_list(Servername), is_integer(Port) ->
     Path = code:priv_dir(percept2),
     Root = filename:join([Path, "server_root"]),
@@ -556,7 +556,7 @@ get_webserver_config(Servername, Port)
 	% Roots
 	{server_root, Root},
 	{document_root,filename:join([Root, "htdocs"])},
-	
+
 	% Aliases
 	{eval_script_alias,{"/eval",[io]}},
         {erl_script_alias,{"/cgi-bin",[percept2_graph,percept2_html,io]}},
@@ -569,7 +569,7 @@ get_webserver_config(Servername, Port)
        	% Logs
 	%{transfer_log, filename:join([Path, "logs", "transfer.log"])},
 	%{error_log, filename:join([Path, "logs", "error.log"])},
-	
+
 	% Configs
 	{default_type,"text/plain"},
 	{directory_index,["index.html"]},
@@ -594,7 +594,7 @@ get_webserver_config(Servername, Port)
 
 
 rm_tmp_files(Dir) ->
-    case file:list_dir(Dir) of 
+    case file:list_dir(Dir) of
         {error, Error} ->
             {error, Error};
         {ok, FileNames} ->
@@ -604,7 +604,7 @@ rm_tmp_files(Dir) ->
 
 get_svg_alias_dir() ->
     percept2_httpd!{self(), get_dir},
-    receive 
+    receive
         {dir, Dir} ->
             Dir
     end.
@@ -614,10 +614,10 @@ get_svg_alias_dir(Config) ->
 
 get_tmp_dir()->
     ServerRoot = filename:join([code:priv_dir(percept2), "server_root"]),
-    case writeable(ServerRoot) of 
+    case writeable(ServerRoot) of
          true ->
             SvgDir=filename:join([ServerRoot, "svgs"]) ++"/",
-            case filelib:ensure_dir(SvgDir) of 
+            case filelib:ensure_dir(SvgDir) of
                 ok -> SvgDir;
                 {error, _} ->
                     get_tmp_dir_1()
@@ -643,19 +643,19 @@ get_user_input_dir(Msg) ->
     [$\n|Str] = lists:reverse(Input),
     Str1 = filename:join(lists:reverse(Str), "."),
     [_|Str2] = lists:reverse(Str1),
-    Dir = lists:reverse(Str2),             
-    case filelib:is_dir(Dir) of 
+    Dir = lists:reverse(Str2),
+    case filelib:is_dir(Dir) of
         true ->
-            case writeable(Dir) of 
+            case writeable(Dir) of
                 true ->
                     Dir;
                 false ->
                     Msg1="I don't have write permission to the directory given, "
-                        "please specify another directory.\n", 
+                        "please specify another directory.\n",
                     get_user_input_dir(Msg1)
             end;
         false ->
-            case filelib:ensure_dir(Dir) of 
+            case filelib:ensure_dir(Dir) of
                 ok ->
                     Dir;
                 {error,_Reason} ->
@@ -667,7 +667,7 @@ get_user_input_dir(Msg) ->
 writeable(F) ->
     case file:read_file_info(F) of
         {ok, FileInfo} ->
-            case FileInfo#file_info.access of 
+            case FileInfo#file_info.access of
                 read_write -> true;
                 write -> true;
                 _ -> false

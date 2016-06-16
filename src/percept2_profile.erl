@@ -8,26 +8,26 @@
 %% compliance with the License. You should have received a copy of the
 %% Erlang Public License along with this software. If not, it can be
 %% retrieved online at http://www.erlang.org/.
-%%  
+%%
 %% Software distributed under the License is distributed on an "AS IS"
 %% basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. See
 %% the License for the specific language governing rights and limitations
 %% under the License.
 %%
 %% %CopyrightEnd%
-%% 
+%%
 
-%% 
-%% @doc Percept Collector 
+%%
+%% @doc Percept Collector
 %%
 %%	This module provides the user interface for the percept data
 %	collection (profiling).
-%% 
+%%
 
 -module(percept2_profile).
 
 -export([
-         start/2, 
+         start/2,
          start/3,
          stop/0
       	]).
@@ -38,18 +38,18 @@
 
 %%==========================================================================
 %%
-%% 		Type definitions 
+%% 		Type definitions
 %%
 %%==========================================================================
 %%-type port_number() :: integer().
 
--type trace_flags() :: 
+-type trace_flags() ::
         'all' | 'send' |'receive' |'procs'|'call'|'silent'|
         'return_to' |'running'|'exiting'|'garbage_collection'|
         'timestamp'|'cpu_timestamp'|'arity'|'set_on_spawn'|
         'set_on_first_spawn'|'set_on_link'|'set_on_first_link'|'ports'.
 
--type profile_flags():: 
+-type profile_flags()::
         'runnable_procs'|'runnable_ports'|'scheduler'|'exclusive'.
 
 -type module_name()::atom().
@@ -66,14 +66,14 @@
 
 -spec start(FileSpec::file:filename()|
                       {file:filename(), wrap, Suffix::string(),
-                       WrapSize::pos_integer()}, 
+                       WrapSize::pos_integer()},
             Options::[trace_flags()|profile_flags()]) ->
                    {'ok', port()} | {'already_started', port()}.
 start(FileSpec, Options) ->
-    profile_to_file(FileSpec,Options). 
+    profile_to_file(FileSpec,Options).
 
-%%@doc Starts profiling at the entrypoint specified by the MFA. All events are collected, 
-%%	this means that processes outside the scope of the entry-point are also profiled. 
+%%@doc Starts profiling at the entrypoint specified by the MFA. All events are collected,
+%%	this means that processes outside the scope of the entry-point are also profiled.
 %%	No explicit call to stop/0 is needed, the profiling stops when
 %%	the entry function returns.
 -spec start(FileSpec::file:filename()|
@@ -88,14 +88,14 @@ start(FileSpec, _Entry={Mod, Fun, Args}, Options) ->
 	undefined ->
 	    profile_to_file(FileSpec,Options),
             _Res=erlang:apply(Mod, Fun, Args),
-            stop();  
+            stop();
 	Port ->
 	    {already_started, Port}
     end.
 
-deliver_all_trace() -> 
+deliver_all_trace() ->
     Tracee = self(),
-    Tracer = spawn(fun() -> 
+    Tracer = spawn(fun() ->
                            receive {Tracee, start} -> ok end,
                            Ref = erlang:trace_delivered(Tracee),
                            receive {trace_delivered, Tracee, Ref} -> Tracee ! {self(), ok} end
@@ -109,28 +109,28 @@ deliver_all_trace() ->
 %% @doc Stops profiling.
 -spec stop() -> 'ok' | {'error', 'not_started'}.
 stop() ->
-    erlang:system_profile(undefined, [runnable_ports, runnable_procs, 
+    erlang:system_profile(undefined, [runnable_ports, runnable_procs,
                                       scheduler, exclusive]),
     erlang:trace(all, false, [all]),
     erlang:trace_pattern({'_', '_', '_'}, false, [local]),
-    case ets:info(percept2_spawn) of 
+    case ets:info(percept2_spawn) of
         undefined -> ok;
         _ -> ets:delete(percept2_spawn)
     end,
-    deliver_all_trace(), 
+    deliver_all_trace(),
     case whereis(percept2_port) of
-    	undefined -> 
+    	undefined ->
 	    {error, not_started};
 	Port ->
-	    erlang:port_command(Port, 
-                                erlang:term_to_binary({profile_stop, erlang:now()})),
+	    erlang:port_command(Port,
+                                erlang:term_to_binary({profile_stop, erlang:timestamp()})),
             erlang:port_close(Port),
        	    ok
-    end. 
+    end.
 
 %%==========================================================================
 %%
-%% 		Auxiliary functions 
+%% 		Auxiliary functions
 %%
 %%==========================================================================
 -spec profile_to_file(FileSpec::file:filename()|
@@ -139,12 +139,12 @@ stop() ->
                       Opts::[percept_option()])->
                              {'ok', port()} | {'already_started', port()}.
 profile_to_file(FileSpec, Opts) ->
-    case whereis(percept2_port) of 
+    case whereis(percept2_port) of
 	undefined ->
 	    io:format("Starting profiling.~n", []),
-            
+
 	    erlang:system_flag(multi_scheduling, block),
-            FileSpec1 = case FileSpec of 
+            FileSpec1 = case FileSpec of
                             {FileName, wrap, Suffix, Size} ->
                                 {FileName, wrap, Suffix, Size, 49};
                             {FileName, wrap, Suffix, Size, MaxFileCnt} ->
@@ -153,15 +153,15 @@ profile_to_file(FileSpec, Opts) ->
                         end,
 	    Port =  (dbg:trace_port(file, FileSpec1))(),
                                                 % Send start time
-	    erlang:port_command(Port, erlang:term_to_binary({profile_start, erlang:now()})),
+	    erlang:port_command(Port, erlang:term_to_binary({profile_start, erlang:timestamp()})),
             erlang:port_command(Port, erlang:term_to_binary(
                                         {schedulers,erlang:system_info(schedulers)})),
             erlang:port_command(Port, erlang:term_to_binary({profile_opts, Opts})),
 	    erlang:system_flag(multi_scheduling, unblock),
-		
+
 	    %% Register Port
     	    erlang:register(percept2_port, Port),
-	    set_tracer(Port, Opts), 
+	    set_tracer(Port, Opts),
 	    {ok, Port};
 	Port ->
 	    io:format("Profiling already started at port ~p.~n", [Port]),
@@ -174,7 +174,7 @@ set_tracer(Port, Opts) ->
     Mods = [M||M<-ModOrMFAs,is_atom(M)],
     MFAs = [MFA||MFA={_M, _F, _A}<-ModOrMFAs],
     load_modules(Mods),
-    case Mods of 
+    case Mods of
         [] -> ok;
         _ ->
             ets:new(?percept2_spawn_tab, [named_table, public, {keypos,1}, set]),
@@ -186,7 +186,7 @@ set_tracer(Port, Opts) ->
     erlang:trace(all, true, [{tracer, Port}, timestamp,set_on_spawn| TraceOpts]),
     erlang:system_profile(Port, ProfileOpts),
     ok.
-    
+
 
 module_funs(s_group) ->
     [{s_group, new_s_group, 2}, {s_group, delete_s_group, 1},
@@ -197,7 +197,7 @@ module_funs(Mod) ->
 load_modules([]) ->
     ok;
 load_modules([Mod|Mods]) ->
-    case code:ensure_loaded(Mod) of 
+    case code:ensure_loaded(Mod) of
         {module, _} -> load_modules(Mods);
         {error, _} ->
             Str = io_lib:format("Percept2 failed to load module ~p, "
@@ -205,14 +205,14 @@ load_modules([Mod|Mods]) ->
             io:format(lists:flatten(Str)),
             load_modules(Mods)
     end.
-           
--spec(parse_profile_options([percept_option()]) -> 
+
+-spec(parse_profile_options([percept_option()]) ->
              {[trace_flags()], [profile_flags()], [module_name()|mfa()]}).
 parse_profile_options(Opts) ->
     parse_profile_options(Opts, {[],[],[]}).
 
 parse_profile_options([], Out={TraceOpts, ProfileOpts, ModOpts}) ->
-    case lists:member(s_group, ModOpts) of 
+    case lists:member(s_group, ModOpts) of
         true ->
             {TraceOpts--[arity], ProfileOpts, ModOpts};
         false ->
@@ -226,12 +226,12 @@ parse_profile_options([Opt|Opts],{TraceOpts, ProfileOpts, ModOpts}) ->
         s_group ->
             parse_profile_options(
                Opts, {TraceOpts, ProfileOpts, [s_group|ModOpts]});
-	_ -> 
-            case lists:member(Opt, trace_flags()) of 
+	_ ->
+            case lists:member(Opt, trace_flags()) of
                 true ->
                     parse_profile_options(
                       Opts, {[Opt|TraceOpts], ProfileOpts, ModOpts});
-                false -> case lists:member(Opt,profile_flags()) of 
+                false -> case lists:member(Opt,profile_flags()) of
                              true ->
                                  parse_profile_options(
                                    Opts, {TraceOpts, [Opt|ProfileOpts], ModOpts});
@@ -248,7 +248,7 @@ trace_flags()->
      'timestamp','cpu_timestamp','arity','set_on_spawn',
      'set_on_first_spawn','set_on_link','set_on_first_link',
      'scheduler_id', 'ports'].
-               
-profile_flags()->        
+
+profile_flags()->
     ['runnable_procs','runnable_ports','scheduler','exclusive'].
 
